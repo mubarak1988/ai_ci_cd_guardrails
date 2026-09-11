@@ -84,7 +84,7 @@ jobs:
         run: npm install -g promptfoo
       - name: Run adversarial evaluation suite
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
           echo "Running adversarial prompt-injection and jailbreak checks..."
           promptfoo eval --config promptfoo.config.yaml --output results.json
