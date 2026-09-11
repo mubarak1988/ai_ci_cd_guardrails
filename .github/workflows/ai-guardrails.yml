@@ -87,7 +87,7 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
           echo "Running adversarial prompt-injection and jailbreak checks..."
-          promptfoo eval --config promptfoo.config.yaml --output results.json
+          promptfoo eval --config promptfoo.config.yaml --output results.json --max-concurrency 1 --delay 1000
       - name: Enforce pass-rate gate
         run: |
           PASS_RATE=$(jq '.results.stats.successes / (.results.stats.successes + .results.stats.failures) * 100' results.json)
