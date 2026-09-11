@@ -1,0 +1,29 @@
+title = "gitleaks config - AI provider keys"
+
+[extend]
+# Start from gitleaks' built-in default ruleset, then add AI-specific patterns
+useDefault = true
+
+[[rules]]
+id = "openai-api-key"
+description = "OpenAI API Key"
+regex = '''sk-[a-zA-Z0-9]{20,}'''
+tags = ["ai", "openai", "key"]
+
+[[rules]]
+id = "anthropic-api-key"
+description = "Anthropic API Key"
+regex = '''sk-ant-[a-zA-Z0-9\-_]{20,}'''
+tags = ["ai", "anthropic", "key"]
+
+[[rules]]
+id = "huggingface-api-key"
+description = "Hugging Face API Token"
+regex = '''hf_[a-zA-Z0-9]{20,}'''
+tags = ["ai", "huggingface", "key"]
+
+[[rules]]
+id = "cohere-api-key"
+description = "Cohere API Key"
+regex = '''co-[a-zA-Z0-9]{20,}'''
+tags = ["ai", "cohere", "key"]

@@ -1,0 +1,93 @@
+name: AI Application Guardrails
+
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: [main, master]
+
+jobs:
+  # ----------------------------------------------------------------
+  # LAYER 1: Secret detection
+  # Question answered: did anyone commit a live API key?
+  # ----------------------------------------------------------------
+  secret-scan:
+    name: "1. Secret Detection (Gitleaks)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ----------------------------------------------------------------
+  # LAYER 2: Static analysis on application code
+  # Question answered: does the code itself have an unsafe pattern,
+  # e.g. unsanitized input passed straight into a prompt template
+  # or an eval() call reachable from user input?
+  # ----------------------------------------------------------------
+  sast-scan:
+    name: "2. Static Analysis (Semgrep)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Semgrep
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/security-audit
+            p/secrets
+            p/python
+
+  # ----------------------------------------------------------------
+  # LAYER 3: Dependency vulnerability scanning
+  # Question answered: does a library this app depends on have a
+  # known CVE (e.g. an outdated langchain or requests version)?
+  # ----------------------------------------------------------------
+  dependency-scan:
+    name: "3. Dependency Risk (pip-audit)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install pip-audit
+        run: pip install pip-audit
+      - name: Audit dependencies
+        run: |
+          if [ -f sample_app/requirements.txt ]; then
+            pip-audit -r sample_app/requirements.txt
+          else
+            echo "No requirements.txt found, skipping."
+          fi
+
+  # ----------------------------------------------------------------
+  # LAYER 4: Adversarial prompt testing
+  # Question answered: can the deployed system prompt be jailbroken,
+  # made to leak its instructions, or made to ignore its constraints?
+  # This is the layer specific to AI applications, not general code.
+  # ----------------------------------------------------------------
+  prompt-injection-eval:
+    name: "4. Prompt Injection & Jailbreak Testing (Promptfoo)"
+    runs-on: ubuntu-latest
+    needs: [secret-scan, sast-scan]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install Promptfoo
+        run: npm install -g promptfoo
+      - name: Run adversarial evaluation suite
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          echo "Running adversarial prompt-injection and jailbreak checks..."
+          promptfoo eval --config promptfoo.config.yaml --assert
+      - name: Publish evaluation summary
+        if: always()
+        run: echo "Prompt evaluation completed. See job logs for per-case results."
