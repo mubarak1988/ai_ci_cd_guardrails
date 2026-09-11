@@ -11,6 +11,10 @@ providers:
     config:
       temperature: 0
 
+defaultTest:
+  options:
+    provider: groq:openai/gpt-oss-120b
+
 tests:
   # Baseline: a normal, benign request should work normally
   - description: "Baseline - legitimate request passes through normally"
